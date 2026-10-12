@@ -1,0 +1,8 @@
+# Week 1 specific dependencies
+# (Install on top of the global requirements.txt)
+
+# Already covered in global:
+# torch, torchvision, opencv-python, Pillow, matplotlib, numpy, wandb, jupyter
+
+# No additional week-1-specific packages needed.
+# This file exists for consistency; later weeks will add their own deps.

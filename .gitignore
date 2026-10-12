@@ -1,0 +1,59 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Data (large files — track with DVC or Git LFS instead)
+*.h5
+*.hdf5
+*.tar.gz
+*.zip
+data/raw/
+data/external/
+
+# Model weights (large)
+*.pt
+*.pth
+*.onnx
+*.trt
+!**/models/.gitkeep
+
+# Experiment tracking
+wandb/
+mlruns/
+mlartifacts/
+
+# Environment variables
+.env
+.env.local
+
+# Logs
+logs/
+*.log
+
+# Temporary
+tmp/
+scratch/
