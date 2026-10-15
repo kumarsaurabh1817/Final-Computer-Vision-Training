@@ -2,7 +2,7 @@
 # (Install on top of the global requirements.txt)
 
 # Augmentation library (Day 4)
-albumentations>=1.4.0
+albumentations>=2.0.0  # 2.x API: CoarseDropout uses num_holes_range/hole_*_range/fill; GaussNoise uses std_range
 opencv-python-headless>=4.9.0  # headless version avoids display conflicts
 
 # scikit-learn for confusion matrix & per-class metrics (Day 5)
