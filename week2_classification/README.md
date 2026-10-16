@@ -70,9 +70,17 @@ python day2_transfer_learning.py --backbone efficientnet_b0 --epochs 15
 
 ---
 
-### Day 5: Ablation Study & Final Results _(coming next)_
-- Compare: baseline CNN vs feature extraction vs fine-tuned
-- Confusion matrix + per-class metrics
+### Day 5: Ablation Study & Final Results
+- Run a controlled no-augmentation vs augmentation comparison
+- Compare training from scratch with ImageNet transfer learning
+- Generate the ablation table, learning curves, normalized confusion matrices,
+  and per-class precision/recall/F1
+- Save CSV, JSON, checkpoints, plots, and a metric-driven final write-up
+
+Colab notebook: `day5_ablation_evaluation/Week2_Day5_Colab.ipynb`
+
+Standalone CLI:
+`python day5_ablation_evaluation/day5_ablation_evaluation.py --auto-download`
 
 ---
 
@@ -93,7 +101,10 @@ week2_classification/
 │
 ├── day3_custom_dataset/                    ← Coming: Day 3
 ├── day4_augmentation/                      ← Coming: Day 4
-├── day5_ablation/                          ← Coming: Day 5
+├── day5_ablation_evaluation/
+│   ├── Week2_Day5_Colab.ipynb              ← Self-contained Colab workflow
+│   ├── day5_ablation_evaluation.py          ← Standalone CLI workflow
+│   └── notes.md                             ← Design and interpretation guide
 │
 ├── models/                                 ← Saved checkpoints
 │   └── .gitkeep

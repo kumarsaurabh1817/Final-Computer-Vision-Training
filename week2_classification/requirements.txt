@@ -8,6 +8,9 @@ opencv-python-headless>=4.9.0  # headless version avoids display conflicts
 # scikit-learn for confusion matrix & per-class metrics (Day 5)
 scikit-learn>=1.4.0
 
+# Optional automatic download of the public Intel dataset (Day 5)
+kagglehub>=0.3.0
+
 # torchvision already pulled in by torch (pretrained backbones)
 # wandb already in global requirements
 

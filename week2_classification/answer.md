@@ -458,3 +458,81 @@ Day 5 (next): Ablation table + confusion matrix + final results write-up
 | `matplotlib` | Visualisations, filter plots, feature maps |
 | `wandb` | Experiment tracking (optional) |
 | `numpy` | Array manipulation, image conversion |
+
+---
+
+## Day 5 — Augmentation Ablation, Confusion Matrix & Per-Class Metrics
+
+### What Was Done
+
+1. Created a self-contained Google Colab notebook at
+   `day5_ablation_evaluation/Week2_Day5_Colab.ipynb`.
+2. Defined three reproducible ResNet-18 experiments:
+   - `scratch_no_aug`: random initialization without augmentation;
+   - `pretrained_no_aug`: ImageNet initialization without augmentation;
+   - `pretrained_aug`: the same pretrained setup with augmentation.
+3. Added stratified train/validation splitting while keeping the supplied test
+   folders untouched for final evaluation.
+4. Added best-validation checkpoint selection, early stopping, learning curves,
+   an ablation CSV, normalized confusion matrices, and per-class precision,
+   recall, F1, and support.
+5. Added JSON/CSV/PNG/model artifact export, an automatically generated final
+   Markdown report, and a downloadable ZIP for Colab.
+6. Added `day5_ablation_evaluation/notes.md` with the experiment design and
+   correct interpretation rules.
+7. Added `day5_ablation_evaluation/day5_ablation_evaluation.py`, a standalone
+   command-line version of the same Day 5 workflow. It accepts an existing
+   dataset with `--data-dir`, can fetch it with `--auto-download`, and provides
+   `--quick` strictly for a one-epoch pipeline smoke test.
+
+### Why It Was Done
+
+- The Week 2 success gate requires evidence that transfer learning beats a
+  from-scratch reference and a measured augmentation effect.
+- `pretrained_no_aug` versus `pretrained_aug` is the valid controlled ablation:
+  model, data split, seed, optimizer, learning rates, epoch budget, checkpoint
+  rule, and evaluation transform stay fixed; only training augmentation changes.
+- The scratch comparison answers a separate question—the benefit of pretrained
+  features—and is therefore reported as a separate delta.
+- Overall accuracy alone can hide class-specific failures. Macro F1 and the
+  confusion matrix expose weak classes and systematic class-pair confusion.
+
+### How It Was Done
+
+1. The notebook installs pinned minimum dependencies and checks CUDA availability.
+2. `kagglehub` downloads and locates the public Intel Image Classification data.
+3. A fixed seed and stratified split create identical training/validation samples
+   for every experiment.
+4. Validation and test transforms are deterministic. Only the augmented training
+   run receives flips, small affine changes, lighting/color variation, mild
+   blur/noise, and coarse dropout. Unrealistic vertical flips are excluded.
+5. Pretrained runs use differential learning rates: a small backbone learning
+   rate and a larger new-head learning rate. The scratch model trains all layers
+   at the normal learning rate.
+6. Each best validation checkpoint is evaluated on the test set, after which the
+   notebook computes the table, reports, plots, and measured metric deltas.
+7. The generated write-up describes augmentation as helpful or harmful based on
+   the actual sign of the result; it never assumes augmentation must help.
+
+### Key Topics
+
+- Controlled ablation design and fair baselines
+- Transfer learning versus training from scratch
+- Differential learning rates and catastrophic-forgetting prevention
+- Stratified splitting, reproducibility, and test-set isolation
+- Accuracy, macro F1, weighted F1, precision, recall, and support
+- Normalized confusion matrices and class-level error analysis
+- Early stopping and best-checkpoint selection
+- Domain-appropriate, label-preserving augmentation
+- Colab artifact persistence and reproducible reporting
+
+### Dataset and Colab Requirement
+
+Yes, this task uses the **Intel Image Classification** dataset
+(`puneet6060/intel-image-classification`). You do **not** need to download it
+manually before opening Colab: the notebook downloads the public dataset with
+`kagglehub`. Colab needs internet access for that download and for the ImageNet
+pretrained ResNet-18 weights. Select a **T4 GPU**, keep `FULL_RUN=True` for final
+metrics, run every cell in order, and download `week2_day5_outputs.zip` before the
+runtime disconnects. `FULL_RUN=False` is only a smoke test and its metrics must
+not be used as final results.
