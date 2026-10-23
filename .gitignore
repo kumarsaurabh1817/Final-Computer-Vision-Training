@@ -33,6 +33,7 @@ desktop.ini
 *.zip
 data/raw/
 data/external/
+week3_detection/data/
 
 # Model weights (large)
 *.pt

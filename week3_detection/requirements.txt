@@ -1,0 +1,11 @@
+# Week 3 specific dependencies (install on top of the global requirements.txt).
+# The Colab notebooks pip-install these themselves; this file is for local/WSL2 runs.
+
+ultralytics==8.4.182      # YOLO26 detect/seg + ByteTrack/BoT-SORT trackers (Days 1, 2, 3, 4)
+kagglehub==1.0.2          # dataset downloads, incl. single-folder downloads (all days)
+lap==0.5.12               # linear assignment used by the Ultralytics trackers (Day 4)
+anomalib==2.7.0           # PatchCore / PaDiM reference implementations (Day 5)
+scipy>=1.11.0             # Hungarian matching for the tracking metrics (Day 4)
+pyyaml>=6.0               # dataset / tracker YAML files
+
+# torch, torchvision, numpy, pandas, matplotlib, scikit-learn, opencv come from the global requirements.txt
