@@ -34,6 +34,7 @@ desktop.ini
 data/raw/
 data/external/
 week3_detection/data/
+week4_documents/data/
 
 # Model weights (large)
 *.pt
