@@ -1,0 +1,21 @@
+# Week 5 specific dependencies (install on top of the global requirements.txt).
+# The Colab notebooks pip-install these themselves; this file is for local/WSL2 runs.
+# System dependency (Days 2, 3): Tesseract OCR binary  ->  sudo apt-get install tesseract-ocr
+
+transformers>=4.57                     # Qwen3-VL, LLaVA-OneVision, ViLT, BLIP, BLIP-2 (Days 1–5)
+accelerate>=1.0                        # device_map="auto" model loading (Days 1–4)
+kagglehub>=0.3                         # Kaggle dataset download: Flickr8k, SROIE (all days)
+outlines>=1.0                          # constrained JSON decoding (Day 3)
+ultralytics>=8.3                       # YOLO11n detections to explain (Day 3)
+pytesseract==0.3.13                    # Week 4 OCR baseline + grounding check (Days 2, 3)
+rapidfuzz>=3.9                         # fuzzy matching, Levenshtein / ANLS (Days 2, 3)
+python-dateutil                        # date normalization (Days 2, 3)
+pydantic>=2.6                          # schemas + validation (Days 2, 3)
+tabulate                               # markdown tables in the three-way comparison (Day 3)
+open_clip_torch>=2.24                  # CLIP / SigLIP embeddings, CLIPScore (Days 4, 5)
+pycocoevalcap==1.2                     # BLEU / ROUGE-L / CIDEr (Day 4)
+sentence-transformers>=3.0             # MiniLM text embeddings for caption indexes (Days 4, 5)
+rank_bm25==0.2.2                       # BM25 caption index (Day 4)
+faiss-cpu>=1.8                         # vector index (Day 5)
+
+# torch, torchvision, numpy, pandas, matplotlib, Pillow come from the global requirements.txt
