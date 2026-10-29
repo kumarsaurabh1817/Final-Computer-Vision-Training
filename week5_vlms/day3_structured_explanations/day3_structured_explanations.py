@@ -137,17 +137,45 @@ def get_secret(name: str) -> str | None:
         return None
 
 
+USE_DRIVE = True  # Colab: look for datasets in Google Drive before downloading
+DRIVE_DATASETS = Path("/content/drive/MyDrive/datasets")
+
+
+def drive_datasets() -> Path | None:
+    """Mount Google Drive (Colab only, asks for permission once) and return the datasets folder, or None."""
+    if not (IN_COLAB and USE_DRIVE):
+        return None
+    if not Path("/content/drive/MyDrive").exists():
+        from google.colab import drive
+        drive.mount("/content/drive")
+    return DRIVE_DATASETS if DRIVE_DATASETS.exists() else None
+
+
 def kaggle_dataset(slug: str, local_name: str) -> Path:
     """
-    Folder of a Kaggle dataset, downloaded once.
+    Folder of a Kaggle dataset, found or downloaded once.
 
-    1. DATA_DIR/<local_name>, if you uploaded and unzipped it yourself.
-    2. kagglehub.dataset_download(slug), authenticated by KAGGLE_API_TOKEN or KAGGLE_USERNAME + KAGGLE_KEY
-       (env or Colab secrets) or ~/.kaggle/kaggle.json. kagglehub caches, so reruns do not download again.
+    1. DATA_DIR/<local_name>, if it is already there (unzipped earlier in this session, or by you).
+    2. Google Drive: DRIVE_DATASETS/<local_name>.zip is unzipped to DATA_DIR (local disk is much faster than
+       reading thousands of files from Drive); an unzipped DRIVE_DATASETS/<local_name>/ folder is used directly.
+    3. kagglehub.dataset_download(slug). Public datasets usually need no login; otherwise it uses KAGGLE_API_TOKEN
+       or KAGGLE_USERNAME + KAGGLE_KEY (env or Colab secrets) or ~/.kaggle/kaggle.json. kagglehub caches downloads.
     """
     manual = DATA_DIR / local_name
     if manual.exists() and any(manual.iterdir()):
         return manual
+    drive_dir = drive_datasets()
+    if drive_dir is not None:
+        zip_path = drive_dir / f"{local_name}.zip"
+        if zip_path.exists():
+            import zipfile
+            print(f"unzipping {zip_path} -> {manual} ...")
+            with zipfile.ZipFile(zip_path) as zf:
+                zf.extractall(manual)
+            return manual
+        if (drive_dir / local_name).is_dir():
+            print(f"using {drive_dir / local_name} (unzipped on Drive; a .zip would load faster)")
+            return drive_dir / local_name
     for key in ("KAGGLE_API_TOKEN", "KAGGLE_USERNAME", "KAGGLE_KEY"):
         val = get_secret(key)
         if val:

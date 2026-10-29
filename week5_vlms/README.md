@@ -20,7 +20,11 @@ A one-page list of every topic used this week, each with a short explanation, is
 
 No download is needed for the rest: the **Week 4 held-out invoices** are rendered in code (same generator, seed 2026 and ids as Week 4 Day 5), the charts on Days 4–5 are drawn with matplotlib, and **CIFAR-10** (Day 5) is downloaded by torchvision.
 
-### Kaggle access from Colab (do this once)
+### Option 1 (recommended): keep the zips in Google Drive
+
+Put `flickr8k.zip` and `sroie.zip` (renamed from Kaggle's `archive.zip`) in `My Drive/datasets/`. Each notebook mounts Drive, unzips them to the fast local disk and skips the download. CIFAR-10 is read from `My Drive/datasets/cifar-10-batches-py/` if it is there. To change the folder, edit `DRIVE_DATASETS` in the helper cell; set `USE_DRIVE = False` to turn this off.
+
+### Option 2: Kaggle access from Colab (do this once)
 
 1. On kaggle.com: **Settings → API → Create New Token**. You get either an API token (`KGAT_…`) or a `kaggle.json` with `username` and `key`.
 2. In Colab: click the **key icon (Secrets)** in the left sidebar and add either
