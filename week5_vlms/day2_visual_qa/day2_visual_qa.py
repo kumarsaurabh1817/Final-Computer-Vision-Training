@@ -23,7 +23,7 @@ Datasets: SROIE v2 from Kaggle (https://www.kaggle.com/datasets/urbikn/sroie-dat
 #
 # **Data:** [SROIE v2 on Kaggle](https://www.kaggle.com/datasets/urbikn/sroie-datasetv2) (scanned Malaysian receipts, ~1,000 images with `company/date/address/total` JSON; we use the test split), [Flickr8k on Kaggle](https://www.kaggle.com/datasets/adityajn105/flickr8k) (photos), and the Week 4 synthetic invoices (generated below — no download).
 #
-# > Runtime: **T4 GPU**, ~20–30 min with `FULL_RUN=True`.
+# > Runtime: **T4 GPU**, ~20–30 min with `FULL_RUN=True`. Peak GPU memory stays under ~12 GB: one model on the GPU at a time, images capped at 1280 px (shared across pages), and the cache freed after every answer. If you still hit `CUDA out of memory`, *Runtime → Restart session* (memory from earlier runs is not released otherwise) or lower `DOC_MAX_SIDE`.
 
 # %% [markdown]
 # ## 0 · Install dependencies
@@ -54,6 +54,10 @@ import random
 import re
 import time
 from pathlib import Path
+
+# Must be set before torch touches the GPU: lets the allocator grow/shrink segments instead of fragmenting
+# the T4's 15 GB across many differently sized image prompts (the usual cause of "CUDA out of memory").
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
 import matplotlib
 
@@ -88,8 +92,9 @@ VILT_ID = "dandelin/vilt-b32-finetuned-vqa"
 N_SROIE = 60 if FULL_RUN else 6
 N_PER_LAYOUT = 2 if FULL_RUN else 1  # Week 4 Day 5 held-out ids d5_<layout>_00, _01 -> same documents as Week 4
 HELDOUT_SEED = 2026
-DOC_MAX_SIDE = 1600  # receipts and A4 pages have small print
-RES_SIDES = [640, 1024, 1600] if FULL_RUN else [640, 1600]
+DOC_MAX_SIDE = 1280  # receipts and A4 pages have small print; 1600 px (+ a 2nd page) runs a 15 GB T4 out of memory
+MAX_PIXELS_PER_PROMPT = 1280 * 1280  # pixel budget shared by all pages of one prompt (multi-page invoices)
+RES_SIDES = [640, 960, 1280] if FULL_RUN else [640, 1280]
 GPU_USD_PER_HOUR = 0.35  # on-demand T4, same assumption as Week 4
 SEED = 42
 
@@ -233,6 +238,8 @@ class VLM:
 
     def messages(self, images: list, prompt: str, system: str | None = None, max_side: int | None = -1) -> list:
         side = self.max_side if max_side == -1 else max_side
+        if side and len(images) > 1:  # several pages in one prompt: split the pixel budget so visual tokens stay bounded
+            side = min(side, int((MAX_PIXELS_PER_PROMPT / len(images)) ** 0.5 * 1.2))
         content = [{"type": "image", "image": fit_image(im, side)} for im in images] + [{"type": "text", "text": prompt}]
         msgs = [{"role": "system", "content": [{"type": "text", "text": system}]}] if system else []
         return msgs + [{"role": "user", "content": content}]
@@ -259,11 +266,31 @@ class VLM:
         n_out = int((new[0] != self.processor.tokenizer.pad_token_id).sum())
         self.last = {"latency_s": latency, "input_tokens": int(inputs["input_ids"].shape[1]), "output_tokens": n_out,
                      "visual_tokens": self.visual_tokens(inputs)}
-        return [t.strip() for t in self.processor.batch_decode(new, skip_special_tokens=True)]
+        texts = [t.strip() for t in self.processor.batch_decode(new.cpu(), skip_special_tokens=True)]
+        del inputs, out, new  # release the KV cache and pixel tensors before the next prompt
+        free_gpu()
+        return texts
 
     def ask(self, images, prompt: str, max_new_tokens: int = 128, system: str | None = None, max_side: int | None = -1) -> str:
-        images = images if isinstance(images, (list, tuple)) else [images]
-        return self.generate([self.messages(list(images), prompt, system, max_side)], max_new_tokens)[0]
+        images = list(images) if isinstance(images, (list, tuple)) else [images]
+        side = self.max_side if max_side == -1 else max_side
+        for attempt in range(3):  # on OOM retry with ~25% fewer pixels per side instead of crashing the run
+            try:
+                return self.generate([self.messages(images, prompt, system, side)], max_new_tokens)[0]
+            except torch.cuda.OutOfMemoryError:
+                free_gpu()
+                if attempt == 2:
+                    raise
+                side = int((side or max(max(im.size) for im in images)) * 0.75)
+                print(f"CUDA OOM -> retrying with max_side={side}")
+
+
+def free_gpu() -> None:
+    """Return cached, unused GPU memory to the allocator (no-op on CPU)."""
+    import gc
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
 # %%
 # ---- preprocess.py: helper code for this day (self-contained, no external project files) ----
@@ -1142,29 +1169,34 @@ random.Random(SEED).shuffle(SROIE)
 SROIE = SROIE[:N_SROIE]
 print(f"SROIE receipts used: {len(SROIE)} | example truth: { {k: SROIE[0][k] for k in ('company', 'date', 'total')} }")
 
-QWEN = VLM(VLM_ID, max_side=DOC_MAX_SIDE)
-vilt = pipeline("visual-question-answering", model=VILT_ID, device=0 if DEVICE == "cuda" else -1)
-
+# One model on the GPU at a time: ViLT answers first and is freed, then Qwen3-VL is loaded.
 GENERIC_QS = ["What is the person doing?", "What color is the main object?", "Is it daytime or night?", "How many people are there?"]
-cmp_rows = []
+receipt = Image.open(SROIE[0]["image"]).convert("RGB")
+cmp_rows = []  # one dict per (image, question); the ViLT and Qwen3-VL answers are filled in below
 for name in FLICKR_TEST[:4]:
     img = Image.open(FLICKR_DIR / name).convert("RGB")
     for q in GENERIC_QS[:3]:
-        v = vilt(image=img, question=q, top_k=1)[0]
-        a = QWEN.ask(img, q + " Answer in a few words.", max_new_tokens=20, max_side=896)
-        cmp_rows.append({"image": name, "question": q, "vilt": f"{v['answer']} ({v['score']:.2f})", "qwen3_vl": a})
-receipt = Image.open(SROIE[0]["image"]).convert("RGB")
+        cmp_rows.append({"img": img, "image": name, "question": q, "suffix": " Answer in a few words.", "tokens": 20, "side": 896})
 for q, key in [("What is the total amount?", "total"), ("What is the name of the store?", "company")]:
-    v = vilt(image=receipt, question=q, top_k=1)[0]
-    a = QWEN.ask(receipt, q + " Answer with the value only.", max_new_tokens=30)
-    cmp_rows.append({"image": f"receipt {SROIE[0]['id']}", "question": q, "vilt": f"{v['answer']} ({v['score']:.2f})",
-                     "qwen3_vl": a, "truth": SROIE[0][key]})
+    cmp_rows.append({"img": receipt, "image": f"receipt {SROIE[0]['id']}", "question": q,
+                     "suffix": " Answer with the value only.", "tokens": 30, "side": -1, "truth": SROIE[0][key]})
+
+vilt = pipeline("visual-question-answering", model=VILT_ID, device=0 if DEVICE == "cuda" else -1)
+for row in cmp_rows:
+    v = vilt(image=row["img"], question=row["question"], top_k=1)[0]
+    row["vilt"] = f"{v['answer']} ({v['score']:.2f})"
+del vilt
+free_gpu()
+
+QWEN = VLM(VLM_ID, max_side=DOC_MAX_SIDE)
+if DEVICE == "cuda":
+    print(f"GPU memory after loading {VLM_ID}: {torch.cuda.memory_allocated() / 1e9:.1f} GB")
+for row in cmp_rows:
+    row["qwen3_vl"] = QWEN.ask(row.pop("img"), row["question"] + row.pop("suffix"), max_new_tokens=row.pop("tokens"),
+                               max_side=row.pop("side"))
 VILT_CMP = pd.DataFrame(cmp_rows)
 pd.set_option("display.max_colwidth", 80)
 print(VILT_CMP.to_string(index=False))
-del vilt
-if DEVICE == "cuda":
-    torch.cuda.empty_cache()
 
 # %% [markdown]
 # ## 4 · Receipt VQA on SROIE
