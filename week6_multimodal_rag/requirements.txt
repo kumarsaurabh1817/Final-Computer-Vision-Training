@@ -1,0 +1,20 @@
+# Week 6 specific dependencies (install on top of the global requirements.txt).
+# The Colab notebooks pip-install these themselves; this file is for local/WSL2 runs.
+# System dependencies: sudo apt-get install tesseract-ocr poppler-utils
+
+pymupdf>=1.24                  # PDF text, tables, images, drawings, rendering (all days)
+reportlab>=4.0                 # synthetic report PDFs (all days)
+pytesseract==0.3.13            # OCR route for scanned pages (Day 1)
+transformers>=4.57             # Table Transformer, Qwen3-VL (all days)
+timm                           # Table Transformer backbone
+accelerate>=1.0                # device_map="auto" for the VLM
+open_clip_torch>=2.24          # CLIP image/text embeddings (Days 2-5)
+sentence-transformers>=3.0     # BGE embeddings, cross-encoder reranker (Days 2-5)
+faiss-cpu>=1.8                 # vector index (Days 3-5)
+qdrant-client>=1.10            # vector database comparison (Day 3)
+langchain-text-splitters>=0.3  # chunking (Days 2-5)
+pydantic>=2.6                  # answer schema (Day 5)
+requests                       # OpenRouter backend (optional)
+# unstructured[pdf]>=0.15      # optional comparison parser (Day 1)
+
+# torch, torchvision, numpy, pandas, matplotlib, opencv, Pillow come from the global requirements.txt
