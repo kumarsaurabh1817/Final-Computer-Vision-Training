@@ -1,0 +1,7 @@
+# Week 7 specific dependencies (install on top of the global requirements.txt and week6_multimodal_rag/requirements.txt).
+# The Colab notebooks pip-install these themselves; this file is for local/WSL2 runs.
+
+-r ../week6_multimodal_rag/requirements.txt
+langgraph>=0.2                 # agent state machine (Days 2-5)
+tabulate                       # markdown tables in the eval report (Day 5)
+# ragas                        # optional: library versions of the Day 5 metrics
