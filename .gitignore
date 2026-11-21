@@ -59,3 +59,6 @@ logs/
 # Temporary
 tmp/
 scratch/
+
+# Course artifacts written by the Week 6-8 notebooks (indexes, corpora, checkpoints)
+cv_course_artifacts/

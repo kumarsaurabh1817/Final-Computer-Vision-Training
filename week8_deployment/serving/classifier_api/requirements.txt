@@ -1,0 +1,8 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart
+onnxruntime>=1.19
+numpy
+pillow
+scipy
+grad-cam>=1.5

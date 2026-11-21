@@ -1,0 +1,13 @@
+# Both services on one machine:  docker compose up --build
+services:
+  classifier:
+    build: ./classifier_api
+    ports: ["8000:8000"]
+  rag:
+    build: ./rag_api
+    ports: ["8001:8000"]
+    environment:
+      LLM_BACKEND: openrouter
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+    volumes:
+      - ${RAG_ARTIFACTS:-../../cv_course_artifacts/week6_rag}:/artifacts/week6_rag:ro

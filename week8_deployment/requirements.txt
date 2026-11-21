@@ -1,0 +1,20 @@
+# Week 8 specific dependencies (install on top of the global requirements.txt).
+# The Colab notebooks pip-install these themselves; this file is for local/WSL2 runs.
+# The services have their own requirements in serving/*/requirements.txt.
+
+kagglehub>=0.3                 # dataset fallback (all days)
+torch-pruning>=1.4             # structured pruning (Day 1)
+onnx>=1.16                     # export + checker (Days 2-3)
+onnxscript                     # used by newer torch.onnx exporters
+onnxruntime-gpu>=1.19          # ONNX Runtime with CUDA / TensorRT providers (use onnxruntime on CPU-only machines)
+fastapi>=0.110                 # serving (Days 3, 5)
+uvicorn[standard]>=0.29
+python-multipart
+requests
+grad-cam>=1.5                  # Grad-CAM (Days 3, 5)
+mlflow>=2.14                   # tracking + registry (Day 4)
+dvc>=3.0                       # data versioning (Day 4)
+scipy                          # KS / chi-square tests (Days 3, 5)
+evidently                      # drift report (Day 5)
+
+# torch, torchvision, numpy, pandas, matplotlib, opencv, Pillow, scikit-learn come from the global requirements.txt
